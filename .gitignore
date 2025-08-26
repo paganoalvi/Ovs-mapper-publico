@@ -1,0 +1,10 @@
+.env/
+__pycache__/
+*.vim
+*.swp
+*.swo
+
+input
+output
+
+
