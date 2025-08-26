@@ -1,20 +1,18 @@
 # csv2pronto
 
-[![README in spanish](https://img.shields.io/badge/lang-es-red.svg)](./README.es.md)
+Este repositorio contiene la ontología Inmontology, definida para modelar
+la información relacionada a avisos inmobiliarios. Además contiene
+el script `csv2pronto`, encargado de traducir un archivo `CSV` a un
+grafo RDF que se apega a la ontología.
 
-This repository contains the Pronto ontology, defined to model
-information related to real estate listings. Additionally, it contains
-the `csv2pronto` script, responsible for translating a CSV file to a graph
-that adheres to the ontology.
+## Contenido
 
-## Contents
+En la carpeta [`csv2pronto`](./csv2pronto) se encuentra el script de Python
+encargado de llevar un archivo fuente en formato CSV a un RDF que respete
+la ontología Inmontology, definida en [`./ontology/inmontology_v2.owl`](./ontology/inmontology_v2.owl).
 
-The [`csv2pronto`](./csv2pronto) folder contains the Python script responsible
-for converting a source file in CSV format to an RDF that adheres to the
-Pronto ontology, defined in [`./ontology/pronto.owl`](./ontology/pronto.owl).
-
-Below are the headers that the input file should have in order to be
-converted by the script:
+A continuación se listan los headers que debería tener el archivo de entrada para
+poder ser convertido por el script:
 
 - address
 - advertiser_id
@@ -36,7 +34,7 @@ converted by the script:
 - garage_amnt
 - is_finished_property
 - is_new_property
-- is_studio_apartmentSee the LICENSE file for more information.
+- is_studio_apartment
 - land_ratio
 - land_surface
 - land_surface_unit
@@ -73,63 +71,66 @@ converted by the script:
 - uncovered_surface_unit
 - url
 - year_built
+- direccion
+- fot,irregular
+- medidas
+- esquina
+- barrio
+- frentes
+- pileta
+- urb_cerrada
+- posesion
+- urb_semicerrada
+- preventa,indiviso
+- a_demoler
+- es_multioferta
+- es_monetizable
+- loteo_ph
+Si bien no todos los datos son obligatorios, a mayor completitud
+mejor será la representación semántica producida.
 
-While not all data is mandatory, the more detailed it is,
-the better the semantic representation produced.
+## Instalación
 
-## Installation
-
-First, clone this repository with:
+Primero, cloná este repositorio con:
 
 ```bash
 git clone https://github.com/tu_usuario/csv2pronto.git
 ```
 
-To use this project, you need to have Python 3.10 or higher installed on your
-system. You can download Python 3 from the [official website](https://www.python.org/downloads/).
+Para utilizar este proyecto, necesitás tener instalado Python 3.10 o superior en
+tu sistema. Podés descargar Python 3 desde el [sitio web oficial](https://www.python.org/downloads/).
 
-Once done, create a virtual environment and activate it with:
+Una vez hecho esto, creá un entorno virtual y activarlo con:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 ```
 
-All required packages are listed in the `requirements.txt` file,
-which can be installed using pip with the following command:
+Todos los paquetes requeridos están listados en el archivo
+`requirements.txt`, los cuales pueden ser instalados
+usando pip mediante el siguiente comando:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
+## Uso
 
-To use this project, navigate to the project directory and activate the virtual environment:
+Para usar este proyecto, navegá hasta el directorio del proyecto y activá el entorno
+virtual:
 
 ```bash
 source venv/bin/activate
 ```
 
-Then run the script with Python:
+Luego ejecutá el script con Python:
 
 ```bash
-python csv2pronto.py -s <archivo_csv_fuente> -d <archivo_rdf_destino> -o <archivo_ontología> -f <formato_rdf>
+python csv2pronto.py -s <archivo_csv_fuente> -d <archivo_rdf_destino> -o <archivo_ontología> -f <formato_rdf> -ss <sitios web>
 ```
 
-### Arguments
+## Licencia
 
-- `-s`, `--source`: Path to the CSV file to be converted.
-- `-d`, `--destination`: Path to the RDF file to be written.
-- `-o`, `--ontology`: Path to the ontology to be used.
-- `-f`, `--format`: Format of the output graph (e.g., xml, ttl, nt, n3).
-
-## Example
-
-```bash
-python csv2pronto.py -s data.csv -d output.ttl -o pronto.owl -f ttl
-```
-
-## License
-
-This project is licensed under the MIT License.
-See the [LICENSE](./LICENSE) file for more information.
+Este proyecto está bajo la Licencia MIT.
+Consultá el archivo [LICENSE](./LICENSE) para obtener más información.
