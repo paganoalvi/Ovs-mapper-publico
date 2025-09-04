@@ -23,7 +23,20 @@ REC = SafeNamespace("https://w3id.org/rec#")
 TIME = SafeNamespace("http://www.w3.org/2006/time#")
 BRICK = SafeNamespace("https://brickschema.org/schema/Brick#")
 GEO= SafeNamespace("http://www.opengis.net/ont/geosparql#")
+dic_map= {
+        "esquina": "CornerLot",
+        "pileta": "SwimmingPool",
+        "loteo_ph": "CondominiumUnit",
+        "indiviso": "UndividedLot",
+        "irregular": "IrregularLot",
+        "es_monetizable": "IsMonetizable",
+        "a_demoler": "ToDemolish",
+        "es_multioferta": "Multioffering",
+        "preventa": "PreSale",
+        "posesion": "Posession",
+        "age": "PropertyAge"
 
+    }
 def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format, sites) -> Graph:
     """
     Writes a partial graph `g` with the info of a chunk of rows.
@@ -136,7 +149,7 @@ def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, 
     g.add((priceValue, GR.priceType, String(p_type)))
     g.add((featurePrice, IO.hasValue, priceValue))
     
-    g.add((featurePrice, RDF.type, IO.Precio))
+    g.add((featurePrice, RDF.type, IO.Price))
     g.add((featurePrice, IO.hasOrigin, IO.Scraper))
 
     g.add((dateNode, RDF.type, TIME.Instant))
@@ -212,14 +225,40 @@ def add_real_estate(g: Graph, row: dict) -> Node:
 
     real_estate: Node = _create_real_estate()
     land: Node = _create_space("land")  
+    building: Node = _create_space("building")  
+    
+    add_real_estate_type(g, real_estate, row)
 
+    if (row.get("age") and row.get("age") != "0"):
+        add_feature(g, real_estate, "age", row.get("age"), dateparser.parse(row.get("date_extracted")))
+    g.add((real_estate, REC.includes, land))
     building=None
     if (str(row.get("property_type"))!= "Terreno"):
         building: Node = _create_space("building")  
         g.add((building, RDF.type, REC.Building))
-    
-    add_real_estate_type(g, real_estate, row)
+        g.add((real_estate, REC.includes, building))
+        g.add((land, BRICK.hasPart, building))
+         # add amount of rooms
+        g.add((building, PR.has_number_of_rooms, Integer(row.get("room_amnt"))))
+        rooms: dict[str, Node] = {
+            "bath": REC.Bathroom,
+            "garage": REC.Garage,
+            "bed": REC.Bedroom,
+            "toilette": REC.Toilet,
+        }
+        for room, room_class in rooms.items():
+            add_room(g, building, row, room, room_class)
 
+        #add features to BUILDING
+        for s in ["es_monetizable", "a_demoler"]:
+            with suppress(KeyError):
+                if row[s] == "True":
+                    value = row[s] == "True"
+                else:
+                    value = row[s]
+    
+                if value:
+                    add_feature(g, building, s, value, dateparser.parse("2025-03-01"))
     g.add((land, RDF.type, REC.Site))
     
 
@@ -258,19 +297,14 @@ def add_real_estate(g: Graph, row: dict) -> Node:
     if row.get("address"):
         add_address(g, real_estate, IO.Scraper, str(row.get("address")), neighborhood, district, province, dateparser.parse(row.get("date_extracted")))
     if row.get("direccion"):
-        add_address(g, real_estate, IO.AVE, str(row.get("direccion")), neighborhood, district, province, dateparser.parse("2025-08-12"))
+        add_address(g, real_estate, IO.AVE, str(row.get("direccion")), neighborhood, district, province, dateparser.parse("2025-03-01"))
 
     # if row.get("neighborhood"):
     #     add_neighborhood(g, real_estate, IO.hasScraperValue, IO.hasScraperTime, str(row["neighborhood"]), district, province, dateparser.parse(row.get("date_extracted")))
     # if row.get("barrio"):
-    #     add_neighborhood(g, real_estate, IO.hasAVEValue, IO.hasAVETime, str(row["barrio"]), district, province, dateparser.parse(row.get("date_ave")))
+    #     add_neighborhood(g, real_estate, IO.hasAVEValue, IO.hasAVETime, str(row["barrio"]), district, province, dateparser.parse("2025-03-01"))
 
-    
-    g.add((real_estate, REC.includes, land))
 
-    if (str(row.get("property_type"))!= "Terreno"):
-        g.add((real_estate, REC.includes, building))
-        g.add((land, BRICK.hasPart, building))
 
 
     # g.add((real_estate, REC.locatedIn, district))
@@ -296,6 +330,9 @@ def add_real_estate(g: Graph, row: dict) -> Node:
     # g.add((space, PR.orientation, String(row.get("orientation"))))
     # g.add((space, PR.disposition, String(row.get("disposition"))))
 
+    
+        
+
     # add features to LAND
     for s in ["esquina", "pileta", "loteo_ph",  "indiviso", "irregular"]:
         with suppress(KeyError):
@@ -305,20 +342,11 @@ def add_real_estate(g: Graph, row: dict) -> Node:
                 value = row[s]
 
             if value:
-                add_feature(g, land, s, value, dateparser.parse("2025-08-12"))
+                add_feature(g, land, s, value, dateparser.parse("2025-03-01"))
     if (row.get("medidas")):
-        add_dimensiones(g, land, str(row.get("medidas")), dateparser.parse("2025-08-12"))
+        add_dimensiones(g, land, str(row.get("medidas")), dateparser.parse("2025-03-01"))
 
-    #add features to BUILDING
-    for s in ["es_monetizable", "a_demoler"]:
-        with suppress(KeyError):
-            if row[s] == "True":
-                value = row[s] == "True"
-            else:
-                value = row[s]
-
-            if value and building:
-                add_feature(g, building, s, value, dateparser.parse("2025-08-12"))
+    
 
     #add features to REAL ESTATE
     for s in ["es_multioferta", "preventa", "posesion"]:
@@ -329,7 +357,7 @@ def add_real_estate(g: Graph, row: dict) -> Node:
                 value = row[s]
 
             if value:
-                add_feature(g, real_estate, s, value, dateparser.parse("2025-08-12"))
+                add_feature(g, real_estate, s, value, dateparser.parse("2025-03-01"))
 
         
 
@@ -346,18 +374,8 @@ def add_real_estate(g: Graph, row: dict) -> Node:
             if value and unit:
                 add_surface(g, land, value, unit, s, dateparser.parse(row.get("date_extracted")))
 
-    # add amount of rooms
-    if (str(row.get("property_type"))!= "Terreno"):
-        g.add((building, PR.has_number_of_rooms, Integer(row.get("room_amnt"))))
-        rooms: dict[str, Node] = {
-            "bath": REC.Bathroom,
-            "garage": REC.Garage,
-            "bed": REC.Bedroom,
-            "toilette": REC.Toilet,
-        }
-        for room, room_class in rooms.items():
-            add_room(g, building, row, room, room_class)
-    
+   
+   
     return real_estate
 
 @default_to_NoneNode
@@ -371,7 +389,7 @@ def _create_province(province:str):
 @default_to_NoneNode
 def _create_neighborhood(province:URIRef, district:URIRef, neighborhood:str):
     return IO[
-        f'neighborhood_{neighborhood.replace(" ", "_")}_{province.fragment}_{district.fragment}'
+        f'neighborhood_{neighborhood.replace(" ", "_")}_{district.fragment}_{province.fragment}'
     ]
 
 
@@ -386,7 +404,7 @@ def add_dimensiones(g: Graph, land: Node, value: str, date: datetime|None) -> No
     g.add((dimensionsValue, GR.hasUnitOfMeasurement, String("metros")))
     g.add((dimensionsValue, PR.size_type, String("lot dimensions")))
     
-    g.add((featureDimensions, RDF.type, IO.Dimensiones))
+    g.add((featureDimensions, RDF.type, IO.Dimensions))
     g.add((featureDimensions, IO.hasOrigin, IO.AVE))
     g.add((featureDimensions, IO.hasValue, dimensionsValue))
 
@@ -433,18 +451,18 @@ def add_feature(g: Graph, space: Node, featureName :str, value, date: datetime|N
     feature: Node = create_feature(space, featureName)
     dateNode: Node = BNode() 
     
-    g.add((featureValue, RDF.type, RDFS.Literal)) # ⸘Literal‽
+    # g.add((featureValue, RDF.type, RDFS.Literal)) # ⸘Literal‽
     if (type(value)==int):
-        g.add((featureValue, RDFS.label, Integer(value)))
+        g.add((feature, IO.hasValue, Integer(value)))
     if (type(value)==float):
-        g.add((featureValue, RDFS.label, Double(value)))
+        g.add((feature, IO.hasValue, Double(value)))
     if (type(value)==str):
-        g.add((featureValue, RDFS.label, String(value)))
+        g.add((feature, IO.hasValue, String(value)))
     if (type(value)==bool):
-        g.add((featureValue, RDFS.label, Boolean(value)))
+        g.add((feature, IO.hasValue, Boolean(value)))
     
-    g.add((feature, RDF.type, IO[featureName.capitalize()]))
-    g.add((feature, IO.hasValue, featureValue))
+    g.add((feature, RDF.type, IO[dic_map[featureName]]))
+    # g.add((feature, IO.hasValue, value))
     g.add((feature, IO.hasOrigin, IO.AVE))
     
     g.add((dateNode, RDF.type, TIME.Instant))
@@ -452,8 +470,8 @@ def add_feature(g: Graph, space: Node, featureName :str, value, date: datetime|N
     g.add((feature, TIME.hasTime, dateNode))
     
 
-    if not (IO[featureName.capitalize()], RDFS.subClassOf, IO.Feature) in g:
-        g.add((IO[featureName.capitalize()], RDFS.subClassOf, IO.Feature))
+    if not (IO[dic_map[featureName]], RDFS.subClassOf, IO.Feature) in g:
+        g.add((IO[dic_map[featureName]], RDFS.subClassOf, IO.Feature))
 
 
     g.add((space, IO.hasFeature, feature))
