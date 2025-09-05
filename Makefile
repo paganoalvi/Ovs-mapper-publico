@@ -8,7 +8,7 @@ help:
 	@echo "———————————————————————————————"
 
 graph:
-	.venv/bin/python csv2pronto -s ./input/input.csv -d ./out.ttl -f ttl -o ./ontology/pronto.owl
+	.venv/bin/python csv2pronto -s ./input/input.csv -d ./out.ttl -f ttl -o ./ontology/pronto.owl -ss "argenprop=site1,mercadolibre=site2,zonaprop=site3"
 
 clean:
 	find . -name "__pycache__" -exec rm -fr {} +

@@ -3,6 +3,7 @@ __pycache__/
 *.vim
 *.swp
 *.swo
+*.venv
 
 input
 output
