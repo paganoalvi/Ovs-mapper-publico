@@ -54,6 +54,17 @@ def parse_args() -> argparse.Namespace:
         type=parse_sites,
         help="JSON format dictionary"
     )
+    
+    # NUEVO argumento --mode
+    parser.add_argument(
+        "--mode",choices=["scraper", "ave", "auto"],required=True,
+        help=(
+            "Fuente de datos del input CSV. "
+            "'scraper' espera columnas del scraper, "
+            "'ave' espera columnas del AVE, "
+            "'auto' intenta inferir por encabezados."
+        ),
+    )
     return parser.parse_args()
 
 
