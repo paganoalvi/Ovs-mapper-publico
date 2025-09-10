@@ -37,34 +37,45 @@ dic_map= {
         "age": "PropertyAge"
 
     }
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format, sites) -> Graph:
-    """
-    Writes a partial graph `g` with the info of a chunk of rows.
+def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,mode : str) -> Graph:
+   """
+   Writes a partial graph `g` with the info of a chunk of rows.
 
-    Args:
-        df (pd.DataFrame): a Pandas Dataframe with the info to add to `g`.
-    """
-    for i in range(len(df)):
-        graph += create_graph(df.iloc[i].to_dict(), sites)
-    graph.serialize(destination, format=format, encoding="utf-8")
+   Args:
+       df (pd.DataFrame): a Pandas Dataframe with the info to add to `g`.
+   """
+
+   for i in range(len(df)) :
+       if mode == "scraper":
+           graph += create_graph_scraper(df.iloc[i].to_dict(),mode)
+       elif mode == "ave":
+           graph += create_graph_ave(df.iloc[i].to_dict(), mode)
+   graph.serialize(destination, format=format, encoding="utf-8")
 
 
-def create_graph(row: dict, sites) -> Graph:
-    """
-    Return a graph `g` with the info on `row`.
 
-    Args:
-        row (dict): Dictionary with the info to add.
-    """
+"""
+    El anonymizer lo que hace es alimina los campos vacios y a los sitios les cambia el nombre.
+"""
+def anonymize(row : dict) -> dict:
+   
+    row = {k: v for k, v in row.items() if v != ""} 
+    row = Faker.anonymize(row)
+    return row
 
-    row = {k: v for k, v in row.items() if v != ""}
-    row = Faker.anonymize(row, sites)
 
-    g: Graph = SafeGraph()
+def create_graph_scraper(row: dict, mode: str) -> Graph:
+    row = anonymize(row)
+    g : Graph = SafeGraph()
 
-    listing = add_listing(g, row)
-    agent, account = add_agent(g, row)
-    real_estate = add_real_estate(g, row)
+    
+
+    agent, account = add_agent(g, row) 
+    real_estate = add_real_estate(g, row, mode)
+
+
+    listing = add_listing(g, row, mode)
+
 
     g.add((listing, SIOC.has_creator, account))
     g.add((account, SIOC.creator_of, listing))
@@ -73,10 +84,37 @@ def create_graph(row: dict, sites) -> Graph:
 
     g.add((listing, SIOC.about, real_estate))
 
+    
     return g
 
 
-def add_listing(g: Graph, row: dict) -> Node:
+
+def create_graph_ave(row: dict, mode: str) -> Graph:
+
+
+    row = anonymize(row)
+    g: Graph = SafeGraph()
+
+    real_estate = add_real_estate(g, row, mode)
+
+    listing = add_listing(g, row, mode)
+    
+
+    g.add((listing, SIOC.about, real_estate))
+    '''
+    Agrega nuevas features del ave
+    add_features(g, row,real_estate)
+
+    g.add((listing, SIOC.has_creator, account))
+    g.add((account, SIOC.creator_of, listing))
+    g.add((listing, FOAF.maker, agent))
+    g.add((agent, FOAF.made, listing))
+    '''
+    
+    return g
+
+
+def add_listing(g: Graph, row: dict, mode : str) -> Node:
     """Add listing to the graph `g` and return the listing's `Node`."""
 
     @default_to_incremental(PR, Incremental.LISTING)
@@ -190,7 +228,7 @@ def add_agent(g: Graph, row: dict) -> tuple[Node, Node]:
     return agent, account
 
 
-def add_real_estate_type(g: Graph, real_estate: Node, row: dict) -> None:
+def add_real_estate_type(g: Graph, real_estate: Node, row: dict, mode : str) -> None:
     if (str(row.get("property_type"))== "Casa"):
         g.add((real_estate, RDF.type, IO.House))
     elif (str(row.get("property_type"))== "Departamento"):
