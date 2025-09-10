@@ -57,9 +57,9 @@ def parse_args() -> argparse.Namespace:
     
     # NUEVO argumento --mode
     parser.add_argument(
-        "--mode",choices=["scraper", "ave", "auto"],required=True,
+        "--input_source",choices=["scraper", "ave", "auto"],required=True,
         help=(
-            "Fuente de datos del input CSV. "
+            "Fuente de datos del input CSV, de donde provienen los datos del input.csv "
             "'scraper' espera columnas del scraper, "
             "'ave' espera columnas del AVE, "
             "'auto' intenta inferir por encabezados."
