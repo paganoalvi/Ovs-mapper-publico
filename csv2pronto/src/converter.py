@@ -37,7 +37,8 @@ dic_map= {
         "age": "PropertyAge"
 
     }
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,mode : str) -> Graph:
+#row, graph, idx, args.destination, args.format, args.sites
+def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,site,mode : str) -> Graph:
    """
    Writes a partial graph `g` with the info of a chunk of rows.
 
@@ -49,7 +50,7 @@ def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,mo
        if mode == "scraper":
            graph += create_graph_scraper(df.iloc[i].to_dict(),mode)
        elif mode == "ave":
-           graph += create_graph_ave(df.iloc[i].to_dict(), mode)
+           graph += create_graph_ave(df.iloc[i].to_dict(), mode, site)
    graph.serialize(destination, format=format, encoding="utf-8")
 
 
@@ -89,7 +90,7 @@ def create_graph_scraper(row: dict, mode: str) -> Graph:
 
 
 
-def create_graph_ave(row: dict, mode: str) -> Graph:
+def create_graph_ave(row: dict, mode: str,site) -> Graph:
 
 
     row = anonymize(row)
