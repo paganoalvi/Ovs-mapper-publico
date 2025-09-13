@@ -92,7 +92,6 @@ def create_graph_scraper(row: dict, mode: str) -> Graph:
 
 def create_graph_ave(row: dict, mode: str,site) -> Graph:
 
-
     row = anonymize(row)
     g: Graph = SafeGraph()
 
@@ -102,10 +101,8 @@ def create_graph_ave(row: dict, mode: str,site) -> Graph:
     
 
     g.add((listing, SIOC.about, real_estate))
+        
     '''
-    Agrega nuevas features del ave
-    add_features(g, row,real_estate)
-
     g.add((listing, SIOC.has_creator, account))
     g.add((account, SIOC.creator_of, listing))
     g.add((listing, FOAF.maker, agent))
