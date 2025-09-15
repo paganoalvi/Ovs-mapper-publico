@@ -8,7 +8,7 @@ help:
 	@echo "———————————————————————————————"
 
 graph:
-	# ojo que la version nueva es inmontology_v2.owl
+	# ojo que la version nueva es inmontology_v2.owl y aca se esta usando pronto.owl
 	.venv/bin/python csv2pronto -s ./input/input.csv -d ./output/out.ttl -f ttl -o ./ontology/pronto.owl -ss "argenprop=site1,mercadolibre=site2,zonaprop=site3" --input_source scraper
 
 	# con el .venv activado:

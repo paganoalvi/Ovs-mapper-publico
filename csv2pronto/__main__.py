@@ -55,7 +55,7 @@ def parse_args() -> argparse.Namespace:
         help="JSON format dictionary"
     )
     
-    # NUEVO argumento --mode
+    # NUEVO argumento --input_source
     parser.add_argument(
         "--input_source",choices=["scraper", "ave", "auto"],required=True,
         help=(
