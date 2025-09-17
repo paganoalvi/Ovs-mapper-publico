@@ -38,7 +38,7 @@ dic_map= {
 
     }
 #row, graph, idx, args.destination, args.format, args.sites
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,site,mode : str) -> Graph:
+def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,sites,mode : str) -> Graph:
    """
    Writes a partial graph `g` with the info of a chunk of rows.
 
@@ -48,9 +48,9 @@ def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,si
 
    for i in range(len(df)) :
        if mode == "scraper":
-           graph += create_graph_scraper(df.iloc[i].to_dict(),mode)
+           graph += create_graph_scraper(df.iloc[i].to_dict(),mode,sites)
        elif mode == "ave":
-           graph += create_graph_ave(df.iloc[i].to_dict(), mode, site)
+           graph += create_graph_ave(df.iloc[i].to_dict(), mode, sites)
    graph.serialize(destination, format=format, encoding="utf-8")
 
 
@@ -58,14 +58,14 @@ def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,si
 """
     El anonymizer lo que hace es alimina los campos vacios y a los sitios les cambia el nombre.
 """
-def anonymize(row : dict) -> dict:
+def anonymize(row : dict, sites : dict) -> dict:
    
     row = {k: v for k, v in row.items() if v != ""} 
     row = Faker.anonymize(row)
     return row
 
 
-def create_graph_scraper(row: dict, mode: str) -> Graph:
+def create_graph_scraper(row: dict, mode: str, sites) -> Graph:
     row = anonymize(row)
     g : Graph = SafeGraph()
 
@@ -90,7 +90,7 @@ def create_graph_scraper(row: dict, mode: str) -> Graph:
 
 
 
-def create_graph_ave(row: dict, mode: str,site) -> Graph:
+def create_graph_ave(row: dict, mode: str,sites) -> Graph:
 
     row = anonymize(row)
     g: Graph = SafeGraph()
