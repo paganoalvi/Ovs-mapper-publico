@@ -29,7 +29,7 @@ def main() -> None:
 
         for idx, row in enumerate(pd.read_csv(csv_file, chunksize=chunksize, iterator=True, dialect='excel', delimiter=",", keep_default_na=False, dtype=str)):
             # Process each chunk sequentially
-            create_graph_from_chunk(row, graph, idx, args.destination, args.format, args.sites)
+            create_graph_from_chunk(row, graph, idx, args.destination, args.format, args.sites, args.input_source)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)

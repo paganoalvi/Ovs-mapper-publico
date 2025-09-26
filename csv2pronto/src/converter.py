@@ -48,9 +48,9 @@ def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,si
 
    for i in range(len(df)) :
        if mode == "scraper":
-           graph += create_graph_scraper(df.iloc[i].to_dict(),mode,sites)
+           graph += create_graph_scraper(df.iloc[i].to_dict(),sites)
        elif mode == "ave":
-           graph += create_graph_ave(df.iloc[i].to_dict(), mode, sites)
+           graph += create_graph_ave(df.iloc[i].to_dict(), sites)
    graph.serialize(destination, format=format, encoding="utf-8")
 
 
@@ -61,22 +61,22 @@ def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,si
 def anonymize(row : dict, sites : dict) -> dict:
    
     row = {k: v for k, v in row.items() if v != ""} 
-    row = Faker.anonymize(row)
+    row = Faker.anonymize(row, sites)
     return row
 
 
-def create_graph_scraper(row: dict, mode: str, sites) -> Graph:
-    row = anonymize(row)
+def create_graph_scraper(row: dict, sites) -> Graph:
+    row = anonymize(row, sites)
     g : Graph = SafeGraph()
-    g.parse("output.ttl",format="turtle")
+    #g.parse("output.ttl",format="turtle")
 
     
 
     agent, account = add_agent(g, row) 
-    real_estate = add_real_estate(g, row, mode)
+    real_estate = add_real_estate(g, row)
 
 
-    listing = add_listing(g, row, mode)
+    listing = add_listing(g, row)
 
 
     g.add((listing, SIOC.has_creator, account))
@@ -91,15 +91,15 @@ def create_graph_scraper(row: dict, mode: str, sites) -> Graph:
 
 
 
-def create_graph_ave(row: dict, mode: str,sites) -> Graph:
+def create_graph_ave(row: dict,sites) -> Graph:
 
-    row = anonymize(row)
+    row = anonymize(row, sites)
     #Recibir el grafo del scrapper y parsearlo para leerlo
     g: Graph = SafeGraph() 
     g.parse("output.ttl",format="turtle")
 
-        
-    real_estate = add_real_estate(g, row, mode)
+
+    real_estate = add_real_estate(g, row)
 
     #listing = add_listing(g, row, mode)
     
@@ -109,7 +109,7 @@ def create_graph_ave(row: dict, mode: str,sites) -> Graph:
     return g
 
 
-def add_listing(g: Graph, row: dict, mode : str) -> Node:
+def add_listing(g: Graph, row: dict) -> Node:
     """Add listing to the graph `g` and return the listing's `Node`."""
 
     @default_to_incremental(PR, Incremental.LISTING)
@@ -223,7 +223,7 @@ def add_agent(g: Graph, row: dict) -> tuple[Node, Node]:
     return agent, account
 
 
-def add_real_estate_type(g: Graph, real_estate: Node, row: dict, mode : str) -> None:
+def add_real_estate_type(g: Graph, real_estate: Node, row: dict) -> None:
     if (str(row.get("property_type"))== "Casa"):
         g.add((real_estate, RDF.type, IO.House))
     elif (str(row.get("property_type"))== "Departamento"):
@@ -306,8 +306,8 @@ def add_real_estate(g: Graph, row: dict) -> Node:
     #-----
 
 
-    district: Node = _create_district(row["district"], row["province"])
-    province: Node = _create_province(row["province"])
+    district: Node = _create_district(row.get("district", ""), row.get("province", "")) # revisar estas uri, si son vacias no se puede reconstruir 
+    province: Node = _create_province(row.get("province", ""))
     
     barrio= None
     neighborhood = NoneNode()

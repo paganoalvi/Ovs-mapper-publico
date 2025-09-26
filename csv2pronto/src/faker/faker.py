@@ -8,13 +8,20 @@ class Faker:
     @classmethod
     def anonymize(cls, row: dict, sites) -> dict:
         """Anonimyzes the data in a row."""
-        row = row.copy()
 
+        site = row.get("site", None)
+        if (not site):
+            row["site"]= "site1"
+        else: 
+            row["site"] = cls.site(site, sites)
+        row = row.copy()
+        
+        
         if row.get("listing_id", None):
             row["listing_id"] = cls.id(row["listing_id"])
 
         row["advertiser_name"]= fake.name()
-        row["site"] = cls.site(row["site"], sites)
+        
         row["url"] = None
 
         return row
