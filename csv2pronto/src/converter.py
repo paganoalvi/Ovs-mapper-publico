@@ -68,6 +68,7 @@ def anonymize(row : dict, sites : dict) -> dict:
 def create_graph_scraper(row: dict, mode: str, sites) -> Graph:
     row = anonymize(row)
     g : Graph = SafeGraph()
+    g.parse("output.ttl",format="turtle")
 
     
 
@@ -94,7 +95,9 @@ def create_graph_ave(row: dict, mode: str,sites) -> Graph:
 
     row = anonymize(row)
     #Recibir el grafo del scrapper y parsearlo para leerlo
-    g: Graph = SafeGraph()
+    g: Graph = SafeGraph() 
+    g.parse("output.ttl",format="turtle")
+
         
     real_estate = add_real_estate(g, row, mode)
 
@@ -102,13 +105,6 @@ def create_graph_ave(row: dict, mode: str,sites) -> Graph:
     
     
     #g.add((listing, SIOC.about, real_estate))
-        
-    '''
-    g.add((listing, SIOC.has_creator, account))
-    g.add((account, SIOC.creator_of, listing))
-    g.add((listing, FOAF.maker, agent))
-    g.add((agent, FOAF.made, listing))
-    '''
     
     return g
 
