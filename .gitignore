@@ -4,6 +4,7 @@ __pycache__/
 *.swp
 *.swo
 *.venv
+*.ipynb_checkpoints
 
 input
 output
