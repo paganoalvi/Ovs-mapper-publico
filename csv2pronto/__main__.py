@@ -55,14 +55,14 @@ def parse_args() -> argparse.Namespace:
         help="JSON format dictionary"
     )
     
-    # NUEVO argumento --input_source
+   # new argument to specify the input source format 
     parser.add_argument(
         "--input_source",choices=["scraper", "ave", "auto"],required=True,
         help=(
-            "Fuente de datos del input CSV, de donde provienen los datos del input.csv "
-            "'scraper' espera columnas del scraper, "
-            "'ave' espera columnas del AVE, "
-            "'auto' intenta inferir por encabezados."
+            "Source of the input CSV data. "
+            "'scraper' expects scraper columns, "
+            "'ave' expects AVE columns, "
+            "'auto' attempts to infer from headers."
         ),
     )
     return parser.parse_args()

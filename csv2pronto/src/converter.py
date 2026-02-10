@@ -1,4 +1,10 @@
-"""Module to convert dictionaries to RDF graphs."""
+"""Module to convert dictionaries to RDF graphs.
+
+This module contains the core logic for transforming real estate data from CSV format
+into RDF (Resource Description Framework) triples that conform to the Inmontology and
+Pronto ontologies. The conversion handles multiple aspects of real estate properties
+including attributes, pricing, locations, and building features.
+"""
 
 import ast
 from contextlib import suppress
@@ -15,6 +21,7 @@ from .null_objects.null_objects import NoneNode
 from .null_objects.safe_objects import SafeGraph, SafeNamespace
 from .wrappers.wrappers import default_to_incremental, default_to_NoneNode
 
+# Define RDF namespaces used throughout the ontology
 IO = SafeNamespace("http://www.semanticweb.org/luciana/ontologies/2024/8/inmontology#")
 PR = SafeNamespace("https://raw.githubusercontent.com/fdioguardi/pronto/main/ontology/pronto.owl#")
 SIOC = SafeNamespace("http://rdfs.org/sioc/ns#")
@@ -22,8 +29,10 @@ GR = SafeNamespace("http://purl.org/goodrelations/v1#")
 REC = SafeNamespace("https://w3id.org/rec#")
 TIME = SafeNamespace("http://www.w3.org/2006/time#")
 BRICK = SafeNamespace("https://brickschema.org/schema/Brick#")
-GEO= SafeNamespace("http://www.opengis.net/ont/geosparql#")
-dic_map= {
+GEO = SafeNamespace("http://www.opengis.net/ont/geosparql#")
+
+# Mapping dictionary converting Spanish property names to English ontology class names
+dic_map = {
         "esquina": "CornerLot",
         "pileta": "SwimmingPool",
         "loteo_ph": "CondominiumUnit",
@@ -35,52 +44,89 @@ dic_map= {
         "preventa": "PreSale",
         "posesion": "Posession",
         "age": "PropertyAge"
-
     }
 #row, graph, idx, args.destination, args.format, args.sites
-def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format,sites,mode : str) -> Graph:
+def create_graph_from_chunk(df: pd.DataFrame, graph, idx, destination, format, sites, mode : str) -> Graph:
    """
-   Writes a partial graph `g` with the info of a chunk of rows.
+   Converts a chunk of CSV rows into RDF triples and writes them to a file.
+
+   This function processes a Pandas DataFrame where each row represents a real estate listing,
+   converts it to RDF format, and serializes the graph to the specified destination file.
 
    Args:
-       df (pd.DataFrame): a Pandas Dataframe with the info to add to `g`.
-   """
+       df: DataFrame containing rows of real estate data
+       graph: RDF Graph object to accumulate triples
+       idx: Chunk index for tracking progress
+       destination: File path where the RDF output will be written
+       format: Serialization format (e.g., 'turtle', 'xml', 'n3')
+       sites: Dictionary mapping source sites to anonymized names
+       mode: Data source type ('scraper' or 'ave') determining which conversion function to use
 
+   Returns:
+       The updated RDF Graph object
+   """
    for i in range(len(df)) :
        if mode == "scraper":
-           graph += create_graph_scraper(df.iloc[i].to_dict(),sites)
+           graph += create_graph_scraper(df.iloc[i].to_dict(), sites)
        elif mode == "ave":
            graph += create_graph_ave(df.iloc[i].to_dict(), sites)
    graph.serialize(destination, format=format, encoding="utf-8")
 
 
 
-"""
-    El anonymizer lo que hace es alimina los campos vacios y a los sitios les cambia el nombre.
-"""
 def anonymize(row : dict, sites : dict) -> dict:
+   """
+   Removes empty fields and anonymizes sensitive data in a row.
    
-    row = {k: v for k, v in row.items() if v != ""} 
-    row = Faker.anonymize(row, sites)
-    return row
+   This function cleans the CSV data by:
+   1. Filtering out empty string values
+   2. Replacing original site names with anonymized identifiers
+   3. Generating anonymous advertiser names
+   
+   Args:
+       row: Dictionary representing a single real estate listing
+       sites: Dictionary mapping original site names to anonymized values
+       
+   Returns:
+       Cleaned and anonymized row dictionary
+   """
+   row = {k: v for k, v in row.items() if v != ""} 
+   row = Faker.anonymize(row, sites)
+   return row
 
 
 def create_graph_scraper(row: dict, sites) -> Graph:
+    """
+    Creates RDF graph from web scraper data.
+    
+    Converts a single real estate listing from scraper source into RDF triples including:
+    - Real estate property details
+    - Listing information and metadata
+    - Agent/advertiser information
+    - Relationships between entities
+    
+    Args:
+        row: Dictionary with real estate data from web scraper
+        sites: Dictionary for site name anonymization
+        
+    Returns:
+        RDF Graph containing the listing and related entities
+    """
     row = anonymize(row, sites)
     g : Graph = SafeGraph()
 
     agent, account = add_agent(g, row) 
     real_estate = add_real_estate(g, row)
 
-
     listing = add_listing(g, row)
 
-
+    # Link listing to creator (agent and account)
     g.add((listing, SIOC.has_creator, account))
     g.add((account, SIOC.creator_of, listing))
     g.add((listing, FOAF.maker, agent))
     g.add((agent, FOAF.made, listing))
 
+    # Link listing to the real estate property it describes
     g.add((listing, SIOC.about, real_estate))
 
     
@@ -89,12 +135,24 @@ def create_graph_scraper(row: dict, sites) -> Graph:
 
 
 def create_graph_ave(row: dict,sites) -> Graph:
-
+    """
+    Creates RDF graph from AVE (Argentine real estate system) data.
+    
+    Converts a single listing from the AVE source. Note: This implementation
+    loads an existing graph from 'output.ttl' and adds the real estate property.
+    This allows combining multiple data sources in the same graph.
+    
+    Args:
+        row: Dictionary with real estate data from AVE system
+        sites: Dictionary for site name anonymization
+        
+    Returns:
+        RDF Graph containing the real estate from AVE data
+    """
     row = anonymize(row, sites)
-    #Recibir el grafo del scrapper y parsearlo para leerlo
+    #Load the existing graph from a Turtle file to merge multiple sources
     g: Graph = SafeGraph() 
-    g.parse("output.ttl",format="turtle")
-
+    g.parse("output.ttl", format="turtle")
 
     real_estate = add_real_estate(g, row)
 
@@ -107,7 +165,23 @@ def create_graph_ave(row: dict,sites) -> Graph:
 
 
 def add_listing(g: Graph, row: dict) -> Node:
-    """Add listing to the graph `g` and return the listing's `Node`."""
+    """
+    Adds listing information to the RDF graph.
+    
+    Creates a RealEstateListing node with properties including:
+    - Listing URL and title
+    - Transaction type (sale or lease)
+    - Listing ID and dates (published, extracted)
+    - Price information
+    - Maintenance fees
+    
+    Args:
+        g: RDF Graph to add triples to
+        row: Dictionary containing listing data
+        
+    Returns:
+        URIRef node representing the listing
+    """
 
     @default_to_incremental(PR, Incremental.LISTING)
     def _create_listing():
@@ -131,8 +205,8 @@ def add_listing(g: Graph, row: dict) -> Node:
 
     site: Node = PR[row["site"]]
     g.add((site, RDF.type, SIOC.Site))
-    g.add((listing, SIOC.has_space, site)) #TODO: cambiar has_space
-    g.add((site, SIOC.space_of, listing)) #TODO: cambiar space_of
+    g.add((listing, SIOC.has_space, site))
+    g.add((site, SIOC.space_of, listing))
 
     g.add((listing, SIOC.id, String(row.get("listing_id"))))
 
@@ -167,7 +241,25 @@ def add_listing(g: Graph, row: dict) -> Node:
 
 
 def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, date: datetime|None) -> Node:
-    """Add price to the graph `g` and return the price's `Node`."""
+    """
+    Adds price information to the RDF graph.
+    
+    Creates price specification with:
+    - Numeric value and currency
+    - Price type (BASE, MAINTENANCE FEE, etc.)
+    - Temporal information (when the price was recorded)
+    
+    Args:
+        g: RDF Graph to add triples to
+        listing: The listing node this price is associated with
+        value: Numeric price value
+        currency: Currency code (e.g., 'USD', 'ARS')
+        p_type: Type of price (BASE, MAINTENANCE FEE, etc.)
+        date: Date when the price was recorded
+        
+    Returns:
+        URIRef node representing the price feature
+    """
 
     priceValue: Node = BNode()
     featurePrice: Node = create_feature(listing, "price")
@@ -194,8 +286,19 @@ def add_price(g: Graph, listing:Node, value: float, currency: str, p_type: str, 
 
 def add_agent(g: Graph, row: dict) -> tuple[Node, Node]:
     """
-    Add real estate agent to the graph `g` and return a tuple with the
-    `Node`s of the agent and its user account.
+    Adds real estate agent information to the RDF graph.
+    
+    Creates agent and user account nodes with:
+    - Agent identification and naming
+    - User account with site-specific ID
+    - Links connecting agent to account
+    
+    Args:
+        g: RDF Graph to add triples to
+        row: Dictionary containing advertiser data
+        
+    Returns:
+        Tuple of (agent_node, account_node)
     """
 
     @default_to_NoneNode
@@ -221,6 +324,23 @@ def add_agent(g: Graph, row: dict) -> tuple[Node, Node]:
 
 
 def add_real_estate_type(g: Graph, real_estate: Node, row: dict) -> None:
+    """
+    Assigns the appropriate RDF class to a real estate property based on type.
+    
+    Maps Spanish property types to ontology classes:
+    - Casa -> House
+    - Departamento -> Apartment
+    - Terreno -> Land
+    - Galpon -> Warehouse
+    - Fondo de comercio/Local -> Store
+    - Ph -> CondominiumUnit
+    - Cochera -> ParkingLot
+    
+    Args:
+        g: RDF Graph to add triples to
+        real_estate: The real estate node to classify
+        row: Dictionary containing the property_type field
+    """
     if (str(row.get("property_type"))== "Casa"):
         g.add((real_estate, RDF.type, IO.House))
     elif (str(row.get("property_type"))== "Departamento"):
