@@ -68,9 +68,6 @@ def anonymize(row : dict, sites : dict) -> dict:
 def create_graph_scraper(row: dict, sites) -> Graph:
     row = anonymize(row, sites)
     g : Graph = SafeGraph()
-    #g.parse("output.ttl",format="turtle")
-
-    
 
     agent, account = add_agent(g, row) 
     real_estate = add_real_estate(g, row)
