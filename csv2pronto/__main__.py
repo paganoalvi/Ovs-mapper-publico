@@ -1,4 +1,26 @@
-""" Convert a CSV file to an RDF graph following the Pronto ontology """
+"""
+Convert a CSV file to an RDF graph following the Pronto ontology.
+
+This script reads a CSV file containing data to be mapped into RDF format using the Pronto ontology.
+It processes the CSV in chunks for efficiency and writes the resulting RDF graph to a specified output file.
+
+Usage:
+    python -m csv2pronto -s <source_csv> -d <destination_rdf> -o <ontology_file> -f <rdf_format> --input_source <source_type> [--sites <site_dict>]
+
+Arguments:
+    -s, --source         Path to the input CSV file to convert.
+    -d, --destination    Path to the output RDF file.
+    -o, --ontology       Path to the ontology file to use for mapping.
+    -f, --format         RDF serialization format for the output (e.g., 'xml', 'turtle').
+    --input_source       Source of the input CSV data: 'scraper', 'ave', or 'auto' (to infer from headers).
+    -ss, --sites         (Optional) Dictionary of site mappings in 'key=value' comma-separated format.
+
+Assumptions:
+    - The input CSV must be UTF-8 encoded.
+    - The ontology file must be compatible with rdflib.
+    - The script expects specific columns in the CSV depending on the input source type.
+    - The output RDF file will be overwritten if it exists.
+"""
 
 import argparse
 import csv
